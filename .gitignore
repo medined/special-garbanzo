@@ -1,0 +1,8 @@
+.env
+.idea
+.vscode
+*.pyc
+__pycache__
+cache-*
+config.py
+stock-info

@@ -1,0 +1,23 @@
+name: special-garbanzo
+
+channels:
+  - ranaroussi
+  - conda-forge
+  - defaults
+
+dependencies:
+  - black
+  - bs4
+  - diskcache
+  - keyring
+  - mamba
+  - pandas
+  - dask
+  - html5lib
+  - lxml
+  - pip
+  - python=3.9
+  - requests
+  - yfinance
+  - pip:
+    - robin-stocks

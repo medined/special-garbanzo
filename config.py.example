@@ -1,0 +1,28 @@
+from dotenv import load_dotenv
+import os
+import pprint
+
+
+# Use the python console to set passwords so they never appear
+# in source code.
+#
+# import keyring
+# keyring.set_password("robinhood", "david.medinets@gmail.com", "password")
+
+class Config:
+    def __init__(self):
+        load_dotenv()
+        self.robinhood_username = os.getenv('USERNAME_ROBINHOOD')
+        self.robinhood_password = os.getenv('PASSWORD_ROBINHOOD')
+
+        self.seekingalpha_username = os.getenv('USERNAME_SEEKING_ALPHA')
+        self.seekingalpha_password = os.getenv('PASSWORD_SEEKING_ALPHA')
+
+        self.market_symbols_path = 'data-01-market-symbols.csv'
+        self.optionable_path = 'data-02-market-symbols-optionable.csv'
+        self.current_price_path = 'data-03-current-stock-price.csv'
+        self.filtered_path = 'data-04-filtered.csv'
+        self.option_data_path = 'data-05-options-data.csv'
+        self.option_count_path = 'data-06-option-count.csv'
+        self.interesting_options_path = 'data-07-interesting-options.csv'
+        self.seeking_alpha_url_path = 'data-07-seeking-alpha-url.txt'
