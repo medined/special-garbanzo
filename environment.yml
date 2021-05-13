@@ -9,7 +9,6 @@ dependencies:
   - black
   - bs4
   - diskcache
-  - keyring
   - mamba
   - pandas
   - dask

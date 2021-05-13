@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta, FR, TH
-from TickerWrapper import TickerWrapper
 import config
 import csv
 import diskcache as dc

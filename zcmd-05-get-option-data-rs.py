@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from TickerWrapper import TickerWrapper
 import config
 import csv
 import json
@@ -50,7 +49,6 @@ print(len(options))
 # options = rs.robinhood.options.find_options_by_expiration('AACQ', '2021-05-21')
 
 
-# ticker = TickerWrapper("AACQ")
 # print("0000000000000000000000000000000000000000000000000000")
 # print("0000000000000000000000000000000000000000000000000000")
 # print(ticker.get_put_option_chain())

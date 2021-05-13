@@ -2,7 +2,6 @@
 
 from NASDAQMarket import NASDAQMarket
 from NYSEMarket import NYSEMarket
-from TickerWrapper import TickerWrapper
 import os
 import pandas as pd
 import requests
@@ -25,11 +24,6 @@ ddf.reset_index().set_index('index')
 ddf.map_partitions(lambda df: ddf.assign(z=df.Symbol))
 # df.apply(aaa, axis=1, meta=(None, 'object'))
 print(ddf.head())
-
-# def get_optionable(record):
-#     return TickerWrapper(record.Symbol).optionable()
-
-
 
 # from pyspark import SparkContext
 # from pyspark import SparkConf
