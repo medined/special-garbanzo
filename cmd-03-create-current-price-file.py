@@ -1,21 +1,16 @@
 #!/usr/bin/env python
 
+from config import Config
 from datetime import datetime
 from dateutil.relativedelta import relativedelta, FR, TH
-import config
 import csv
 import diskcache as dc
 import os
 import pandas as pd
-import sys
-import time
 import yfinance as yf
 
-#
-# This script takes about 30 minutes to run.
-#
-
 symbol_count = 0
+
 
 def previous_close(row):
     global symbol_count
@@ -36,13 +31,30 @@ def previous_close(row):
     print(f'{symbol_count}: {row.symbol} @ {close}')
     return close
 
-if not os.path.exists(config.optionable_path):
-    raise RuntimeError(f'Missing {config.optionable_path}.')
 
-# if not os.path.exists(config.current_price_path):
-df = pd.read_csv(config.optionable_path)
-df.rename(columns = {'Symbol':'symbol'}, inplace = True)
-df.rename(columns = {'Security Name':'company_name'}, inplace = True)
-# df = df[df['symbol'] == 'GMTX']
-df['previous_close'] = df.apply(previous_close, axis=1)
-df.to_csv(config.current_price_path, header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
+def main():
+    config = Config()
+    if not os.path.exists(config.path_02_optionable):
+        raise RuntimeError(f'Missing {config.path_02_optionable}.')
+
+    df = pd.read_csv(config.path_02_optionable)
+    df['previous_close'] = df.apply(previous_close, axis=1)
+
+    # drop the 'foo' symbols. I don't know why they exist.
+    df = df[df['symbol'] != 'foo']
+
+    # drop any company without no price.
+    df = df[df['previous_close'] != 0.0]
+
+    # drop any company with a stock price over $20.
+    df = df[df['previous_close'] <= 20]
+
+    df.to_csv(config.path_03_current_price, header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
+
+
+if __name__ == '__main__':
+    time_start = datetime.now()
+    main()
+    time_end = datetime.now()
+    elapsed_time = time_end - time_start
+    print(f'{elapsed_time} seconds')
