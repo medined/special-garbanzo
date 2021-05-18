@@ -7,3 +7,4 @@ cache-*
 config.py
 stock-info
 *.csv
+*.csv.original
