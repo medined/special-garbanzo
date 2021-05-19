@@ -2,22 +2,12 @@
 
 from config import Config
 from datetime import datetime, timedelta
-from RejectionTracker import RejectTracker
 import csv
-import json
 import os
 import pandas as pd
-import requests
 import robin_stocks as rs
-import time
 
-rejection_tracker = RejectTracker()
 stock_info = []
-min_bid_size = 20
-min_volume = 50
-min_income = 20
-min_open_interest = 250
-max_stock_price = 20
 
 
 option_info = []
@@ -29,162 +19,110 @@ symbol_count = 0
 option_count = 0
 
 
-def get_volume_from_robinhood(symbol, expiration_date, strike_price):
-    global min_bid_size
-    try:
-        options = rs.robinhood.options.find_options_by_expiration_and_strike(
-            symbol,
-            expirationDate=expiration_date,
-            strikePrice=strike_price,
-            optionType='put',
-        )
-        if len(options) == 0:
-            rejection_tracker.add_missing_robinhood_options()
-            print(f'\tRobinhood Options missing.')
-            volume = 0
-        else:
-            option = options[0]
-            if 'bid_size' not in option:
-                rejection_tracker.add_missing_bid_size()
-                print(f'\tBid Size missing.')
-            else:
-                bid_size = option['bid_size']
-                if bid_size < min_bid_size:
-                    rejection_tracker.add_low_bid_size()
-                    print(f'\tBid Size of {bid_size} below {min_bid_size}.')
-            if 'volume' not in option:
-                rejection_tracker.add_missing_volume()
-                print(f'\tVolume missing.')
-                volume = 0
-            else:
-                volume = option['volume']
-    except AttributeError:
-        volume = 0
-
-    return volume
-
-
-def get_option_chain_info(symbol):
+def get_option_chain_info(config, symbol):
     global symbol_count
-    global min_volume
-    global min_income
-    global min_open_interest
-    global not_optionable_symbol_cache
-
-    if symbol in not_optionable_symbol_cache:
-        rejection_tracker.add_cached_no_option_data()
-        print(f'{symbol_count}: {symbol} -> CACHE -> No Option Data.')
-        return {}
-
-    symbol_count = symbol_count + 1
     global option_info
     global formatted_entry_date
-    time.sleep(1)
-    r = requests.get(f'https://query1.finance.yahoo.com/v7/finance/options/{symbol}')
-    o = json.loads(r.text)
-    result = o['optionChain']['result'][0]
-    if 'regularMarketPrice' not in result['quote']:
-        rejection_tracker.add_no_closing_price()
-        print(f'{symbol_count}: {symbol} -> No Close Price.')
+
+    symbol_count = symbol_count + 1
+    print(f"{symbol_count}: {symbol}")
+
+    if symbol in not_optionable_symbol_cache:
+        config.rejection_tracker.add_cached_no_option_data()
+        print(f'\tCACHE -> No Option Data.')
         return {}
-    if len(result['options']) == 0:
-        rejection_tracker.add_no_option_data()
+
+    try:
+        options = rs.robinhood.options.find_options_by_specific_profitability(
+            symbol,
+            optionType='put',
+            profitFloor=.60,
+        )
+        for option in options:
+            ask_price = round(float(option['ask_price']), 2)
+            bid_price = round(float(option['bid_price']), 2)
+            bid_size = int(option['bid_size'])
+            break_even_price = round(float(option['break_even_price']), 2)
+            chance_of_profit_short = round(float(option['chance_of_profit_short']), 2)
+            previous_close = round(float(option['previous_close_price']), 2)
+            expiration_date = option['expiration_date']
+            mark_price = round(float(option['mark_price']), 2)
+            open_interest = int(option['open_interest'])
+            previous_close_date = option['previous_close_date']
+            previous_close_price = round(float(option['previous_close_price']), 2)
+            strike_price = round(float(option['strike_price']), 2)
+            volume = int(option['volume'])
+            collateral = round(float(option['strike_price']) * 100, 2)
+            income = round(float(option['mark_price']) * 100, 2)
+            in_the_money = float(option['previous_close_price']) < float(option['strike_price'])
+            percent_profit = round(float(option['mark_price']) / float(option['strike_price']), 2)
+            days_held = (datetime.strptime(option['expiration_date'], '%Y-%m-%d') - today).days
+            annualized = round((float(option['mark_price']) / float(option['strike_price']) / (
+                    datetime.strptime(option['expiration_date'], '%Y-%m-%d') - today).days) * 365, 2)
+
+            if annualized < config.min_annualized:
+                config.rejection_tracker.add_annualized_too_low()
+                print(f'\tAnnualized profit percent of {annualized} is less than {config.min_annualized}.')
+                break
+            if chance_of_profit_short < config.min_chance_of_profit_short:
+                config.rejection_tracker.add_chance_of_project_too_low()
+                print(f'\tChance of profit of {chance_of_profit_short} is less than {config.min_chance_of_profit_short}.')
+                break
+            if previous_close > config.max_stock_price:
+                config.rejection_tracker.add_stock_too_expensive()
+                print(f'\tStock Price of {previous_close} is higher than {config.max_stock_price}.')
+                break
+            if previous_close > config.max_stock_price:
+                config.rejection_tracker.add_stock_too_expensive()
+                print(f'\tStock Price of {previous_close} is higher than {config.max_stock_price}.')
+                break
+            if income < config.min_income:
+                config.rejection_tracker.add_low_income()
+                print(f'\t{strike_price}: Income at {income} below {config.min_income}.')
+                continue
+            if open_interest < config.min_open_interest:
+                config.rejection_tracker.add_low_oi()
+                print(f'\t{strike_price}: Open Interest at {open_interest} below {config.min_open_interest}.')
+                continue
+            if not in_the_money:
+                config.rejection_tracker.add_not_itm()
+                print(f'\t{strike_price}: Not in the money.')
+                continue
+            if volume < config.min_volume:
+                config.rejection_tracker.add_low_volume()
+                print(f'\t{strike_price}: Volume at {volume} below {config.min_volume}.')
+                continue
+
+            record = {
+                'expiration_date': expiration_date,
+                'symbol': symbol,
+                'annualized': annualized,
+                'income': income,
+                'ask_price': ask_price,
+                'bid_price': bid_price,
+                'bid_size': bid_size,
+                'break_even_price': break_even_price,
+                'chance_of_profit_short': chance_of_profit_short,
+                'collateral': collateral,
+                'days_held': days_held,
+                'mark_price': mark_price,
+                'open_interest': open_interest,
+                'percent_profit': percent_profit,
+                'previous_close': previous_close,
+                'previous_close_date': previous_close_date,
+                'previous_close_price': previous_close_price,
+                'strike_price': strike_price,
+                'volume': volume,
+            }
+            option_info.append(record)
+    except TypeError:
+        config.rejection_tracker.add_no_option_data()
         not_optionable_symbol_cache.append(symbol)
         print(f'{symbol_count}: {symbol} -> No Option Data.')
-        return {}
-    if 'puts' not in result['options'][0]:
-        rejection_tracker.add_no_put_data()
-        print(f'{symbol_count}: {symbol} -> No Puts.')
-        return {}
-    previous_close = result['quote']['regularMarketPrice']
-    if previous_close > max_stock_price:
-        rejection_tracker.add_stock_too_expensive()
-        print(f'\tStock Price of {previous_close} is higher than {max_stock_price}.')
-        return {}
-    puts = result['options'][0]['puts']
-    print(f"{symbol_count}: {symbol}")
-    for put in puts:
-        if 'ask' not in put:
-            rejection_tracker.add_missing_ask()
-            print(f'\tMissing ask.')
-            continue
-        if 'bid' not in put:
-            rejection_tracker.add_missing_bid()
-            print(f'\tMissing bid.')
-            continue
-        if 'openInterest' not in put:
-            rejection_tracker.add_missing_oi()
-            print(f'\tMissing openInterest.')
-            continue
-        if 'strike' not in put:
-            rejection_tracker.add_missing_strike()
-            print(f'\tMissing strike.')
-            continue
-        mark = round((put['ask'] + put['bid']) / 2, 2)
-        expiration_timestamp = datetime.fromtimestamp(put['expiration'])
-        last_trade_timestamp = datetime.fromtimestamp(put['lastTradeDate'])
-        days_held = (expiration_timestamp - today).days
-        income = round(mark * 100, 2)
-        collateral = put['strike'] * 100
-        percent_profit = income / collateral
-        annualized = (percent_profit / days_held) * 365
-        open_interest = put['openInterest']
-        # I don't know why break_even is a tuple, but we only want first element.
-        strike = put['strike']
-        break_even = strike - mark,
-        break_even = break_even[0]
-        if income < min_income:
-            rejection_tracker.add_low_income()
-            print(f'\t{strike}: Income at {income} below {min_income}.')
-            continue
-        if open_interest < min_open_interest:
-            rejection_tracker.add_low_oi()
-            print(f'\t{strike}: Open Interest at {open_interest} below {min_open_interest}.')
-            continue
-
-        in_the_money = put['inTheMoney']
-        if not in_the_money:
-            rejection_tracker.add_not_itm()
-            print(f'\t{strike}: Not in the money.')
-            continue
-
-        robinhood_expiration_timestamp = expiration_timestamp + timedelta(days=1)
-        volume = get_volume_from_robinhood(symbol, robinhood_expiration_timestamp.strftime('%Y-%m-%d'), strike)
-        if volume < min_volume:
-            rejection_tracker.add_low_volume()
-            print(f'\t{strike}: Volume at {volume} below {min_volume}.')
-            continue
-
-        record = {
-            'annualized': round(annualized, 2),
-            'expiration': expiration_timestamp.strftime('%Y-%m-%d'),
-            'qa_rating': '?',
-            'symbol': symbol,
-            'strike': strike,
-            'mark': mark,
-            'income': income,
-            'open_interest': put['openInterest'],
-            'break_even': break_even,
-            'previous_close': previous_close,
-            'last_trade': last_trade_timestamp.strftime('%Y-%m-%d'),
-            'chance': '?',
-            'bid': put['bid'],
-            'ask': put['ask'],
-            'volume': volume,
-            'collateral': round(collateral, 2),
-            'days_held': days_held,
-            'percent_profit': round(percent_profit, 2),
-            'implied_volatility': round(put['impliedVolatility'], 2),
-            'in_the_money': put['inTheMoney'],
-            'contract_url': f"https://finance.yahoo.com/quote/{put['contractSymbol']}",
-            'entry_date': formatted_entry_date,
-        }
-        option_info.append(record)
 
 
 def main():
     global not_optionable_symbol_cache
-    global rejection_tracker
 
     config = Config()
     login = rs.robinhood.login(config.robinhood_username, config.robinhood_password)
@@ -202,7 +140,7 @@ def main():
         reader = csv.reader(f)
         header = next(reader)
         for row in reader:
-            get_option_chain_info(row[0])
+            get_option_chain_info(config, row[0])
             # thread = StockInfoFetcher(row[0], row[1])
             # thread.start()
             # threads.append(thread)
@@ -222,7 +160,7 @@ def main():
     df = pd.DataFrame(not_optionable_symbol_cache, columns=['symbol'])
     df.to_csv(config.path_02_not_optionable, header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
 
-    print(rejection_tracker.reasons)
+    print(config.rejection_tracker.reasons)
 
 
 if __name__ == '__main__':

@@ -64,3 +64,9 @@ class RejectTracker:
 
     def add_not_itm(self):
         self.__add_reason('not_itm')
+
+    def add_chance_of_project_too_low(self):
+        self.__add_reason('chance_of_profit_too_low')
+
+    def add_annualized_too_low(self):
+        self.__add_reason('annualized_too_low')
