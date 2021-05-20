@@ -24,7 +24,6 @@ max_stock_price = 20
 
 
 option_info = []
-not_optionable_symbol_cache = []
 today = datetime.now()
 formatted_entry_date = today.strftime('%Y-%m-%d')
 
@@ -72,12 +71,6 @@ def get_option_chain_info(symbol):
     global min_volume
     global min_income
     global min_open_interest
-    global not_optionable_symbol_cache
-
-    if symbol in not_optionable_symbol_cache:
-        rejection_tracker.add_cached_no_option_data()
-        print(f'{symbol_count}: {symbol} -> CACHE -> No Option Data.')
-        return {}
 
     symbol_count = symbol_count + 1
     global option_info
@@ -92,7 +85,6 @@ def get_option_chain_info(symbol):
         return {}
     if len(result['options']) == 0:
         rejection_tracker.add_no_option_data()
-        not_optionable_symbol_cache.append(symbol)
         print(f'{symbol_count}: {symbol} -> No Option Data.')
         return {}
     if 'puts' not in result['options'][0]:
@@ -186,7 +178,6 @@ def get_option_chain_info(symbol):
 
 
 def main():
-    global not_optionable_symbol_cache
     global rejection_tracker
 
     config = Config()
@@ -195,35 +186,15 @@ def main():
     if not os.path.exists(config.path_01_market_symbols):
         raise RuntimeError(f'Missing {config.path_01_market_symbols}.')
 
-    # Read the cached list of symbols without options into a regular array.
-    if os.path.exists(config.path_02_not_optionable):
-        not_optionable_symbol_cache = pd.read_csv(config.path_02_not_optionable).symbol.values.tolist()
-
-    # threads = []
-
     with open(config.path_01_market_symbols) as f:
         reader = csv.reader(f)
         header = next(reader)
         for row in reader:
             get_option_chain_info(row[0])
-            # thread = StockInfoFetcher(row[0], row[1])
-            # thread.start()
-            # threads.append(thread)
 
-    # print(option_info)
-
-    # for t in threads:
-    #     t.join()
-    #
     df = pd.DataFrame(option_info)
-    # df = df[df.optionable]
-    # df.drop(['optionable'], inplace=True, axis=1)
     df.to_csv(config.path_02_option_data, header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
     print(df.head(n=5))
-
-    # Save list of symbols without options.
-    df = pd.DataFrame(not_optionable_symbol_cache, columns=['symbol'])
-    df.to_csv(config.path_02_not_optionable, header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
 
     print(rejection_tracker.reasons)
 

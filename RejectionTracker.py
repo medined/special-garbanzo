@@ -70,3 +70,6 @@ class RejectTracker:
 
     def add_annualized_too_low(self):
         self.__add_reason('annualized_too_low')
+
+    def add_interesting(self):
+        self.__add_reason('interesting')
