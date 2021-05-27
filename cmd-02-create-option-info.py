@@ -3,9 +3,10 @@ import time
 
 from config import Config
 from datetime import datetime, timedelta
-from optionchainfetcher import OptionChainFetcher
+from specialgarbanzo.optionchainfetcher import OptionChainFetcher
 import click
 import csv
+import fuertelogger
 import os
 import pandas as pd
 import robin_stocks as rs
@@ -38,14 +39,7 @@ def main(char):
 
     df = pd.DataFrame(option_info)
     df.to_csv(f'data-02-option_data.{char}.csv', header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
-    print(df.head(n=5))
-
-    print(config.rejection_tracker.reasons)
 
 
 if __name__ == '__main__':
-    time_start = datetime.now()
     main()
-    time_end = datetime.now()
-    elapsed_time = time_end - time_start
-    print(f'{elapsed_time} seconds')

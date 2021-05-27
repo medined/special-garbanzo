@@ -9,15 +9,16 @@ dependencies:
   - black
   - bs4
   - click
-  - diskcache
   - mamba
   - pandas
-  - dask
+  - dtale
   - html5lib
   - lxml
   - pip
+  - plotly
   - python=3.9
   - requests
+  - selenium
   - yfinance
   - pip:
     - robin-stocks

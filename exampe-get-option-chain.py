@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-import config
-import csv
-import diskcache as dc
-import json
-import os
 import pandas as pd
 import yfinance as yf
 
