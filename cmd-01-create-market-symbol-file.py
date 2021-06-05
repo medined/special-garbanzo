@@ -70,6 +70,7 @@ def main():
     df = df[~df.company_name.str.endswith('- Units')]
     df = df[~df.company_name.str.endswith('- Warrant')]
     df = df[~df.company_name.str.endswith('- Warrants')]
+    df.sort_values(by=['symbol'], inplace=True)
 
     threads = []
 
@@ -82,7 +83,7 @@ def main():
     for t in threads:
         t.join()
 
-    # Remove stock price of 0 and stock price over the max.
+    # Remove stock price of 0
     stock_info_filtered = []
     for s in stock_info:
         if s['previous_close'] == 0.0:
@@ -95,9 +96,10 @@ def main():
             stock_info_filtered.append(s)
 
     df = pd.DataFrame(stock_info_filtered)
+    df.sort_values('symbol', inplace=True)
     df.to_csv(config.path_01_market_symbols, header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
     print(df.head(n=5))
-    print(df.shape[0])
+    print(df.shape)
 
 
 if __name__ == '__main__':

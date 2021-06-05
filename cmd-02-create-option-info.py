@@ -38,6 +38,7 @@ def main(char):
             symbol_number = symbol_number + 1
 
     df = pd.DataFrame(option_info)
+    df.sort_values('symbol', inplace=True)
     df.to_csv(f'data-02-option_data.{char}.csv', header=True, index=False, quoting=csv.QUOTE_NONNUMERIC)
 
 
