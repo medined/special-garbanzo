@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-import pprint
+from RejectionTracker import RejectTracker
 
 
 # Use the python console to set passwords so they never appear
@@ -18,11 +18,26 @@ class Config:
         self.seekingalpha_username = os.getenv('USERNAME_SEEKING_ALPHA')
         self.seekingalpha_password = os.getenv('PASSWORD_SEEKING_ALPHA')
 
-        self.market_symbols_path = 'data-01-market-symbols.csv'
-        self.optionable_path = 'data-02-market-symbols-optionable.csv'
-        self.current_price_path = 'data-03-current-stock-price.csv'
-        self.filtered_path = 'data-04-filtered.csv'
-        self.option_data_path = 'data-05-options-data.csv'
-        self.option_count_path = 'data-06-option-count.csv'
-        self.interesting_options_path = 'data-07-interesting-options.csv'
-        self.seeking_alpha_url_path = 'data-07-seeking-alpha-url.txt'
+        self.max_stock_price = 20.0
+
+        self.path_01_market_symbols = 'data-01-market-symbols.csv'
+
+        no_filters = False
+        if no_filters:
+            self.min_bid_size = 0
+            self.min_volume = 10
+            self.min_income = 0
+            self.min_open_interest = 0
+            self.max_stock_price = 10000
+            self.min_chance_of_profit_short = .0
+            self.min_annualized = .0
+        else:
+            self.min_bid_size = 20
+            self.min_volume = 100
+            self.min_income = 30
+            self.min_open_interest = 250
+            self.max_stock_price = 20
+            self.min_chance_of_profit_short = .70
+            self.min_annualized = .20
+
+        self.rejection_tracker = RejectTracker()
