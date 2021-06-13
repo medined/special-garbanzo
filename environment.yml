@@ -16,9 +16,8 @@ dependencies:
   - lxml
   - pip
   - plotly
-  - python=3.9
+  - python
   - requests
   - selenium
-  - yfinance
   - pip:
     - robin-stocks

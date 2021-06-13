@@ -8,5 +8,5 @@ config = Config()
 
 sa = SeekingAlpha()
 
-df = pd.read_csv('data-02-option_data.Y.csv', nrows=10)
+df = pd.read_csv('storage/data-02-option_data.Y.csv', nrows=10)
 sa.get_ratings(config, df)

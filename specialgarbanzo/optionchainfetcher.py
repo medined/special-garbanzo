@@ -1,7 +1,4 @@
-from datetime import datetime
 import robin_stocks as rs
-import specialgarbanzo.previousclosefetcher as pcf
-import json
 
 
 class OptionChainFetcher():
@@ -10,10 +7,8 @@ class OptionChainFetcher():
         self.option_info = option_info
         self.today = today
 
-    def run(self, symbol, symbol_number):
+    def run(self, symbol):
         print(f"{symbol}")
-
-        stock_close = pcf.fetch(symbol)
         try:
             options = rs.robinhood.options.find_options_by_specific_profitability(
                 symbol,
